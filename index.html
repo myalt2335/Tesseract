@@ -1,109 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>□</title>
-  <style> body { margin: 0; } canvas { display: block; } </style>
-  <link rel="icon" href="/tesseract.png" type="image/png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>p5.js Sketch</title>
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
 </head>
-<!-- Read the code and figure it out yourself. -->
 <body>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script>
-    function rotate4D(point, angleXY, angleZW) {
-      let [x, y, z, w] = point;
+    <div id="sketch"></div>
+    <script>
+        const maxSize = 500;
+        let wspeed = 1.66;
+        let hspeed = 1.33;
+        let w = 0;
+        let h = maxSize;
+        let r = 0;
 
-      const cosXY = Math.cos(angleXY), sinXY = Math.sin(angleXY);
-      let newX = cosXY * x - sinXY * y;
-      let newY = sinXY * x + cosXY * y;
+        const sketch = (p) => {
+            p.setup = () => {
+                p.createCanvas(window.innerWidth, window.innerHeight);
+                p.strokeWeight(5);
+                p.background(255);
+                console.log('p5.js setup function executed!');
+            };
 
-      const cosZW = Math.cos(angleZW), sinZW = Math.sin(angleZW);
-      let newZ = cosZW * z - sinZW * w;
-      let newW = sinZW * z + cosZW * w;
+            p.draw = () => {
+                p.background(255, 50);
 
-      return [newX, newY, newZ, newW];
-    }
+                p.translate(p.width / 2, p.height / 2);
+                p.rotate(r);
+                p.fill(0, 1);
+                p.stroke(5);
+                p.ellipse(0, 0, w, h);
 
-    function project4DTo3D(point) {
-      const [x, y, z, w] = point;
-      const distance = 4;
-      const scale = distance / (distance - w);
-      return [x * scale, y * scale, z * scale];
-    }
+                r = r + 0.015;
+                w = w + wspeed;
+                h = h + hspeed;
 
-    const vertices = [
-      [-1, -1, -1, -1], [1, -1, -1, -1], [-1, 1, -1, -1], [1, 1, -1, -1],
-      [-1, -1, 1, -1], [1, -1, 1, -1], [-1, 1, 1, -1], [1, 1, 1, -1],
-      [-1, -1, -1, 1], [1, -1, -1, 1], [-1, 1, -1, 1], [1, 1, -1, 1],
-      [-1, -1, 1, 1], [1, -1, 1, 1], [-1, 1, 1, 1], [1, 1, 1, 1]
-    ];
+                if (w < 0 || w > maxSize) wspeed *= -1;
+                if (h < 0 || h > maxSize) hspeed *= -1;
+            };
 
-    const edges = [
-      [0, 1], [0, 2], [0, 4], [0, 8], [1, 3], [1, 5], [1, 9], [2, 3], [2, 6],
-      [2, 10], [3, 7], [3, 11], [4, 5], [4, 6], [4, 12], [5, 7], [5, 13], [6, 7],
-      [6, 14], [7, 15], [8, 9], [8, 10], [8, 12], [9, 11], [9, 13], [10, 11],
-      [10, 14], [11, 15], [12, 13], [12, 14], [13, 15], [14, 15]
-    ];
+            p.windowResized = () => {
+                p.resizeCanvas(window.innerWidth, window.innerHeight);
+            };
+        };
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
-
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    camera.position.z = 5;
-    controls.update();
-
-    const group = new THREE.Group();
-    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
-    const lines = [];
-
-    edges.forEach(edge => {
-      const geometry = new THREE.BufferGeometry();
-      const points = [
-        new THREE.Vector3(...project4DTo3D(vertices[edge[0]])),
-        new THREE.Vector3(...project4DTo3D(vertices[edge[1]]))
-      ];
-      geometry.setFromPoints(points);
-      const line = new THREE.Line(geometry, material);
-      lines.push(line);
-      group.add(line);
-    });
-
-    scene.add(group);
-
-    let angleXY = 0;
-    let angleZW = 0;
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      angleXY += 0.01;
-      angleZW += 0.01;
-
-      lines.forEach((line, i) => {
-        const [start, end] = edges[i];
-        const newPoints = [
-          new THREE.Vector3(...project4DTo3D(rotate4D(vertices[start], angleXY, angleZW))),
-          new THREE.Vector3(...project4DTo3D(rotate4D(vertices[end], angleXY, angleZW)))
-        ];
-        line.geometry.setFromPoints(newPoints);
-      });
-
-      controls.update();
-      renderer.render(scene, camera);
-    }
-
-    animate();
-
-    window.addEventListener('resize', () => {
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-    });
-  </script>
+        new p5(sketch, document.getElementById('sketch'));
+    </script>
 </body>
 </html>
